@@ -38,6 +38,10 @@ export type MockClientInterface<ClientImports extends ClientInterfaceImportsBase
     >;
 }>;
 
+/** Allows MockClientInterface to be returned in a function. */
+export type MockClientInterfaceSetup<ClientImports extends ClientInterfaceImportsBase> =
+    () => MaybePromise<MockClientInterface<ClientImports>>;
+
 /**
  * Define a client interface that automatically asynchronous imports files only when they are
  * needed.
@@ -45,16 +49,21 @@ export type MockClientInterface<ClientImports extends ClientInterfaceImportsBase
 export function defineClientInterface<const ClientImports extends ClientInterfaceImportsBase>({
     clientImports,
     isTestEnv,
-    mockClients,
+    mockClients: mockClientsInputs,
 }: {
     clientImports: ClientImports;
     /** Set to true to indicate that mock clients should be used. */
     isTestEnv: boolean;
     /** Optional mock clients. Any left out will use a default proxy mock. */
-    mockClients?: MockClientInterface<ClientImports> | undefined;
+    mockClients?:
+        | MockClientInterface<ClientImports>
+        | MockClientInterfaceSetup<ClientImports>
+        | undefined;
 }): ClientInterfaceDefinition<ClientImports> {
     const clientInterfaceDefinition: ClientInterfaceDefinition<ClientImports> =
         {} as ClientInterfaceDefinition<ClientImports>;
+
+    let constructedMockClients: Partial<MockClientInterface<ClientImports>> | undefined;
 
     Object.entries(clientImports).forEach(
         ([
@@ -64,17 +73,28 @@ export function defineClientInterface<const ClientImports extends ClientInterfac
             Object.defineProperty(clientInterfaceDefinition, clientName, {
                 async get(): Promise<ClientInterfaceImportsBase> {
                     if (isTestEnv) {
-                        if (mockClients && clientName in mockClients) {
-                            const mockClient = mockClients[clientName];
-
-                            if (!mockClient) {
-                                throw new Error(`Mock client for '${clientName}' is not defined.`);
+                        if (mockClientsInputs) {
+                            if (!constructedMockClients) {
+                                constructedMockClients =
+                                    typeof mockClientsInputs === 'function'
+                                        ? await mockClientsInputs()
+                                        : mockClientsInputs;
                             }
 
-                            return mockClient;
-                        } else {
-                            return createMockVir();
+                            if (constructedMockClients && clientName in constructedMockClients) {
+                                const mockClient = constructedMockClients[clientName];
+
+                                if (!mockClient) {
+                                    throw new Error(
+                                        `Mock client for '${clientName}' is not defined.`,
+                                    );
+                                }
+
+                                return await mockClient;
+                            }
                         }
+
+                        return createMockVir();
                     } else {
                         const importedModule = await importCallback();
 
@@ -91,7 +111,6 @@ export function defineClientInterface<const ClientImports extends ClientInterfac
                     }
                 },
             });
-            return;
         },
     );
 

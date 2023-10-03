@@ -103,6 +103,33 @@ describe(defineClientInterface.name, () => {
         const mockBasicClient = await testEnvClientInterface.basic;
         assert.strictEqual(mockBasicClient.greetings(), 'mock hi basic');
     });
+
+    it('returns mock clients from a function', async () => {
+        const testEnvClientInterface = defineClientInterface({
+            clientImports: {
+                basic: () => import('./test-files/test-client-basic.test-helper'),
+                async: () => import('./test-files/test-client-async.test-helper'),
+            },
+            isTestEnv: true,
+            mockClients() {
+                return {
+                    basic: {
+                        greetings() {
+                            return 'mock hi basic';
+                        },
+                    },
+                };
+            },
+        });
+
+        const mockAsyncClient = await testEnvClientInterface.async;
+        /** Access something that clearly doesn't exist to demonstrate that we're using a proxy mock. */
+        // @ts-expect-error
+        assert.isDefined(mockAsyncClient.anything.that.does.not.actually.exist);
+
+        const mockBasicClient = await testEnvClientInterface.basic;
+        assert.strictEqual(mockBasicClient.greetings(), 'mock hi basic');
+    });
 });
 
 describe(awaitAllClients.name, () => {
