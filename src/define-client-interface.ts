@@ -126,10 +126,14 @@ export type AwaitedClients<Definition extends ClientInterfaceDefinition<any>> = 
 export async function awaitAllClients<const Definition extends ClientInterfaceDefinition<any>>(
     clientInterfaceDefinition: Definition,
 ): Promise<AwaitedClients<Definition>> {
-    const awaitedClients = mapObjectValues(
-        clientInterfaceDefinition,
-        async (key, value) => await value,
-    ) as AwaitedClients<Definition>;
+    const awaitedClients = mapObjectValues(clientInterfaceDefinition, async (clientName, value) => {
+        try {
+            return await value;
+        } catch (error) {
+            console.error(`Failed to await client '${String(clientName)}':`, error);
+            return undefined;
+        }
+    }) as AwaitedClients<Definition>;
 
     return awaitedClients;
 }

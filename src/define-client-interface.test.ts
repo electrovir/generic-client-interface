@@ -144,4 +144,26 @@ describe(awaitAllClients.name, () => {
         assert.strictEqual(awaitedClientInterface.async.greetings(), 'hi async');
         assert.strictEqual(awaitedClientInterface.async.numericMethod(), 5);
     });
+
+    it('does not fail the entire awaiting if one client fails', async () => {
+        const interfaceWithError = defineClientInterface({
+            clientImports: {
+                basic: () => import('./test-files/test-client-basic.test-helper'),
+                async: () => import('./test-files/test-client-async.test-helper'),
+                failure: () => import('./test-files/test-client-failure.test-helper'),
+            },
+            isTestEnv: false,
+        });
+
+        const awaitedClientInterface = await awaitAllClients(interfaceWithError);
+
+        assert.notInstanceOf(awaitedClientInterface.basic, Promise);
+        assert.notInstanceOf(awaitedClientInterface.async, Promise);
+        assert.isUndefined(awaitedClientInterface.failure);
+
+        assert.strictEqual(awaitedClientInterface.basic.greetings(), 'hi basic');
+
+        assert.strictEqual(awaitedClientInterface.async.greetings(), 'hi async');
+        assert.strictEqual(awaitedClientInterface.async.numericMethod(), 5);
+    });
 });
