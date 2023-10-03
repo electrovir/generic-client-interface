@@ -3,7 +3,9 @@ import {createMockVir} from 'mock-vir';
 import {ClientDefinition, ClientType, isClientDefinition} from './define-client';
 
 /** An async function that imports a client's file. */
-export type ClientImporterBase = () => Promise<any>;
+export type ClientImporterBase<
+    FileModuleType extends Record<PropertyKey, any> = Record<PropertyKey, any>,
+> = () => Promise<FileModuleType>;
 
 /** An object mapping client names to the files wherein they are defined. */
 export type ClientInterfaceImportsBase = Record<string, ClientImporterBase>;
@@ -41,6 +43,26 @@ export type MockClientInterface<ClientImports extends ClientInterfaceImportsBase
 /** Allows MockClientInterface to be returned in a function. */
 export type MockClientInterfaceSetup<ClientImports extends ClientInterfaceImportsBase> =
     () => MaybePromise<MockClientInterface<ClientImports>>;
+
+/** Extract a client definition from a file import callback. */
+export async function extractClientFromImport<FileModuleType extends Record<PropertyKey, any>>(
+    /** Callback that calls import() on a file path. */
+    importCallback: () => Promise<FileModuleType>,
+    /** Client name must be provided for debugging purposes. */
+    clientName: string,
+): Promise<Extract<PropertyValueType<Awaited<FileModuleType>>, ClientDefinition<any>>> {
+    const importedModule = await importCallback();
+
+    const clientDefinition = Object.values(importedModule).find(isClientDefinition);
+
+    if (!clientDefinition) {
+        throw new Error(
+            `Failed to find any client definitions exported for client '${clientName}'`,
+        );
+    }
+
+    return await clientDefinition.liveClient();
+}
 
 /**
  * Define a client interface that automatically asynchronous imports files only when they are
@@ -96,18 +118,7 @@ export function defineClientInterface<const ClientImports extends ClientInterfac
 
                         return createMockVir();
                     } else {
-                        const importedModule = await importCallback();
-
-                        const clientDefinition =
-                            Object.values(importedModule).find(isClientDefinition);
-
-                        if (!clientDefinition) {
-                            throw new Error(
-                                `Failed to find any client definitions exported for client '${clientName}'`,
-                            );
-                        }
-
-                        return await clientDefinition.liveClient();
+                        return await extractClientFromImport(importCallback, clientName);
                     }
                 },
             });

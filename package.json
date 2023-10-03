@@ -1,6 +1,6 @@
 {
     "name": "generic-client-interface",
-    "version": "0.0.4",
+    "version": "0.1.0",
     "description": "A wrapper for creation a group of clients that are independent from each other, easily testable, and asynchronously imported.",
     "keywords": [],
     "homepage": "https://github.com/electrovir/generic-client-interface",
