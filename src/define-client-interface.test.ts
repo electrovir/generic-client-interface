@@ -1,6 +1,5 @@
-import {assertThrows, assertTypeOf} from '@augment-vir/browser-testing';
 import {assert} from '@open-wc/testing';
-import {assertInstanceOf} from 'run-time-assertions';
+import {assertInstanceOf, assertThrows, assertTypeOf} from 'run-time-assertions';
 import {awaitAllClients, defineClientInterface} from './define-client-interface';
 
 const exampleClientInterface = defineClientInterface({

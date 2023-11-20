@@ -1,10 +1,5 @@
-import {
-    MaybePromise,
-    ensureType,
-    isObject,
-    isRuntimeTypeOf,
-    typedHasProperty,
-} from '@augment-vir/common';
+import {MaybePromise, ensureType, isObject, typedHasProperty} from '@augment-vir/common';
+import {isRunTimeType} from 'run-time-assertions';
 
 /** Base type for client setup requirements. */
 export type ClientSetupBase = Record<string, any>;
@@ -20,7 +15,7 @@ export function isClientDefinition(input: unknown): input is ClientDefinition<an
     return (
         isObject(input) &&
         typedHasProperty(input, ensureType<keyof ClientDefinition<any>>('liveClient')) &&
-        isRuntimeTypeOf(input.liveClient, 'function')
+        isRunTimeType(input.liveClient, 'function')
     );
 }
 
